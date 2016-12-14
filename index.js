@@ -19,6 +19,19 @@ var is = require('is-type-of');
 module.exports = KoaRoles;
 
 /**
+* A helper that yields a result and then
+* returns the value provided back by the container.
+* Used to transform promises returned by rules into
+* generators that can be plugged into existing code ...
+*/
+function generateResult(result) {
+  return function* () {
+    return yield result;
+  }();
+}
+
+
+/**
  * Role Middleware for Koa
  * @class KoaRoles
  * @example
@@ -175,11 +188,14 @@ KoaRoles.prototype.is = KoaRoles.prototype.can;
 KoaRoles.prototype.test = function *(ctx, action) {
   for (var i = 0; i < this.functionList.length; i++){
     var fn = this.functionList[i];
+    var result = fn.call(ctx, action);
     var vote = null;
     if (is.generatorFunction(fn)) {
-      vote = yield* fn.call(ctx, action);
+      vote = yield* result;
+    } else if (typeof result.then === 'function') {
+      vote = yield* generateResult(result);
     } else {
-      vote = fn.call(ctx, action);
+      vote = result;
     }
     if (typeof vote === 'boolean') {
       return vote;

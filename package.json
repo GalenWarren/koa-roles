@@ -7,7 +7,7 @@
     "index.js"
   ],
   "scripts": {
-    "test": "mocha --check-leaks -R spec -t 5000 test/*.test.js",
+    "test": "nodemon test/*.test.js --exec 'npm run lint && mocha --check-leaks -R spec -t 5000'",
     "test-cov": "istanbul cover node_modules/.bin/_mocha -- --check-leaks -t 5000 test/*.test.js",
     "test-travis": "npm run lint && istanbul cover node_modules/.bin/_mocha --report lcovonly -- --check-leaks -t 5000 test/*.test.js",
     "lint": "eslint index.js",
@@ -16,18 +16,18 @@
     "contributors": "contributors -f plain -o AUTHORS"
   },
   "dependencies": {
-    "is-type-of": "~0.3.1"
+    "is-type-of": "~0.3.1",
+    "koa-convert": "^1.2.0"
   },
   "devDependencies": {
     "autod": "*",
-    "co-sleep": "0",
     "contributors": "*",
     "cov": "*",
     "eslint": "1",
     "istanbul-harmony": "*",
     "jshint": "*",
-    "koa": "1",
-    "koa-router": "4",
+    "koa": "^2.0.0-alpha.7",
+    "koa-router": "^7.0.1",
     "mocha": "*",
     "pedding": "1",
     "should": "7",

@@ -16,23 +16,26 @@
 
 var should = require('should');
 var request = require('supertest');
-var koa = require('koa');
-var sleep = require('co-sleep');
-var router = require('koa-router');
+var Koa = require('koa');
+var Router = require('koa-router');
 var pedding = require('pedding');
 var Roles = require('../');
 
 describe('koa-roles.test.js', function () {
-  var app = koa();
+  var app = new Koa();
+  var router = new Router();
   var roles = new Roles();
 
-  roles.use('every one', function *() {
+  roles.use('every one', function () {
     return true;
   });
 
-  roles.use('user or admin', function *() {
-    yield sleep(1);
-    return this.query.role === 'user' || this.query.role === 'admin';
+  roles.use('user or admin', function () {
+    return new Promise( (resolve, reject) =>{
+      setTimeout( resolve, 100 );
+    }).then( () => (
+      this.query.role === 'user' || this.query.role === 'admin'
+    ));
   });
 
   roles.use('update', function () {
@@ -60,11 +63,14 @@ describe('koa-roles.test.js', function () {
   });
 
   // other default role check using generator function
-  roles.use(function *(action) {
-    yield sleep(2);
-    if (this.query.role2 === action) {
-      return true;
-    }
+  roles.use(function (action) {
+    return new Promise( (resolve, reject) =>{
+      setTimeout( resolve, 100 );
+    }).then( () => {
+      if (this.query.role2 === action) {
+        return true;
+      }
+    });
   });
 
   app.use(function *(next) {
@@ -77,33 +83,34 @@ describe('koa-roles.test.js', function () {
 
   app.use(roles.middleware());
 
-  app.use(router(app));
+  app.use(router.routes());
+  app.use(router.allowedMethods());
 
-  app.get('/', roles.can('every one'), function *() {
+  router.get('/', roles.can('every one'), function *() {
     this.body = 'page for every one can visit';
   });
 
-  app.get('/admin', roles.can('admin'), function *(next) {
+  router.get('/admin', roles.can('admin'), function *(next) {
     this.body = 'page only for admin can visit';
   });
 
-  app.get('/user', roles.is('user'), function *(next) {
+  router.get('/user', roles.is('user'), function *(next) {
     this.body = 'page only for user';
   });
 
-  app.post('/profile/:id', roles.can('update'), function *() {
+  router.post('/profile/:id', roles.can('update'), function *() {
     this.body = 'page for user update';
   });
 
-  app.get('/profile/:id', roles.can('user or admin'), function *(next) {
+  router.get('/profile/:id', roles.can('user or admin'), function *(next) {
     this.body = 'page can visit by user or admin, current is ' + this.query.role;
   });
 
-  app.get('/friend', roles.can('friend'), function *() {
+  router.get('/friend', roles.can('friend'), function *() {
     this.body = 'The best friend of foo is ' + this.query.role;
   });
 
-  app.get('/any', function *(next) {
+  router.get('/any', function *(next) {
     var isadmin = yield *this.userCan('admin');
     if (!isadmin) {
       return this.throw(403);
